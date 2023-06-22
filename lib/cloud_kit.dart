@@ -81,6 +81,23 @@ class CloudKit {
     return record;
   }
 
+  ///Grab all data entries from the recordType
+  Future<List<Map<String, dynamic>>> getAll() async {
+    if (!Platform.isIOS) {
+      return [];
+    }
+
+    List result = await _channel.invokeMethod('GET_ALL_VALUES', {
+      "recordType": _recordType,
+      "containerId": _containerId,
+    });
+
+    List<Map<String, dynamic>> records =
+        result.map((record) => Map<String, dynamic>.from(record)).toList();
+
+    return records;
+  }
+
   /// Delete a entry from CloudKit using the key.
   Future<bool> delete(String key) async {
     if (!Platform.isIOS) {

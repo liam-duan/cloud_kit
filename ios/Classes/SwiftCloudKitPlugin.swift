@@ -15,6 +15,8 @@ public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "GET_VALUE":
         GetValueHandler().handle(command: call.method, arguments: callArguments, result: result)
+    case "GET_ALL_VALUES":
+        GetAllValuesHandler().handle(command: call.method, arguments: callArguments, result: result)
     case "SAVE_VALUE":
         SaveValueHandler().handle(command: call.method, arguments: callArguments, result: result)
     case "SAVE_VALUES":

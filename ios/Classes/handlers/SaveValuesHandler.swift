@@ -1,12 +1,12 @@
 //
-//  SaveValueHandler.swift
+//  SaveValuesHandler.swift
 //  cloud_kit
 //
 //
 
 import CloudKit
 
-class SaveValueHandler: CommandHandler {
+class SaveValuesHandler: CommandHandler {
     
     var COMMAND_NAME: String = "SAVE_VALUE"
     
