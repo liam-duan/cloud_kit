@@ -11,25 +11,48 @@ class CloudKit {
   static const MethodChannel _channel = const MethodChannel('cloud_kit');
 
   String _containerId = '';
-
-  CloudKit(String containerIdentifier) {
+  String _recordType = '';
+  CloudKit(String containerIdentifier, {String recordType = "StorageItem"}) {
     _containerId = containerIdentifier;
+    _recordType = recordType;
   }
 
   /// Save a new entry to CloudKit using a key and value.
   /// The key need to be unique.
   /// Returns a boolean [bool] with true if the save was successfully.
-  Future<bool> save(String key, String value) async {
+  Future<bool> saveMultiple(List<Map<String, dynamic>> values) async {
     if (!Platform.isIOS) {
       return false;
     }
 
-    if (key.length == 0 || value.length == 0) {
+    if (values.isEmpty) {
       return false;
     }
 
-    bool status = await _channel.invokeMethod('SAVE_VALUE',
-            {"key": key, "value": value, "containerId": _containerId}) ??
+    bool status = await _channel.invokeMethod('SAVE_VALUES', {
+          "recordType": _recordType,
+          "dataEntries": values,
+          "containerId": _containerId
+        }) ??
+        false;
+
+    return status;
+  }
+
+  Future<bool> save(Map<String, dynamic> value) async {
+    if (!Platform.isIOS) {
+      return false;
+    }
+
+    if (value.isEmpty) {
+      return false;
+    }
+
+    bool status = await _channel.invokeMethod('SAVE_VALUE', {
+          "recordType": _recordType,
+          "dataEntry": value,
+          "containerId": _containerId
+        }) ??
         false;
 
     return status;
@@ -38,23 +61,24 @@ class CloudKit {
   /// Loads a value from CloudKit by key.
   /// Returns a string [string] with the saved value.
   /// This can be null if the key was not found.
-  Future<String?> get(String key) async {
+  Future<Map<String, dynamic>?> get(String key, dynamic value) async {
     if (!Platform.isIOS) {
       return null;
     }
 
-    if (key.length == 0) {
+    if (key.isEmpty || value == null) {
       return null;
     }
+    print(_recordType);
+    Map<String, dynamic> record =
+        Map<String, dynamic>.from(await _channel.invokeMethod('GET_VALUE', {
+      "recordType": _recordType,
+      "key": key,
+      "value": value,
+      "containerId": _containerId,
+    }) as Map);
 
-    List<dynamic> records = await (_channel
-        .invokeMethod('GET_VALUE', {"key": key, "containerId": _containerId}));
-
-    if (records.length != 0) {
-      return records[0];
-    } else {
-      return null;
-    }
+    return record;
   }
 
   /// Delete a entry from CloudKit using the key.

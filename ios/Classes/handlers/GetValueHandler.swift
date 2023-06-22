@@ -1,10 +1,3 @@
-//
-//  GetValueHandler.swift
-//  cloud_kit
-//
-//  Created by Manuel on 07.04.23.
-//
-
 import CloudKit
 
 class GetValueHandler: CommandHandler {
@@ -20,20 +13,38 @@ class GetValueHandler: CommandHandler {
             return
         }
         
-        if let key = arguments["key"] as? String, let containerId = arguments["containerId"] as? String {
+        if let key = arguments["key"] as? String, 
+           let value = arguments["value"],
+           let containerId = arguments["containerId"] as? String,
+           let recordType = arguments["recordType"] as? String {
+
             let database = CKContainer(identifier: containerId).privateCloudDatabase
 
-            let query = CKQuery(recordType: "StorageItem", predicate: NSPredicate(value: true))
-
-            database.perform(query, inZoneWith: nil) { (records, error) in
-                let foundRecords = records?.compactMap({ $0.value(forKey: key) as? String })
-
-                result(foundRecords)
+            if let actualValue = value as? CVarArg {
+                let predicate = NSPredicate(format: "\(key) == %@", argumentArray: [actualValue])
+                let query = CKQuery(recordType: recordType, predicate: predicate)
+        
+                database.perform(query, inZoneWith: nil) { (records, error) in
+                    if error == nil {
+                        if let records = records, !records.isEmpty {
+                            let foundRecord = records[0]
+                            let recordMap = foundRecord.allKeys().reduce(into: [String: Any]()) { result, key in
+                                result[key] = foundRecord[key]
+                            }
+                            result(recordMap)
+                        } else {
+                            result(FlutterError.init(code: "Error", message: "No records found", details: nil))
+                        }
+                    } else {
+                        print("CloudKit error: \(error!.localizedDescription)")
+                        result(FlutterError.init(code: "Error", message: "Error fetching records", details: nil))
+                    }
+                }
+            } else {
+                result(FlutterError.init(code: "Error", message: "Cannot cast value to a compatible type", details: nil))
             }
-         } else {
-            result(FlutterError.init(code: "Error", message: "Cannot pass key and value parameter", details: nil))
-         }
+        } else {
+            result(FlutterError.init(code: "Error", message: "Cannot pass required parameters", details: nil))
+        }
     }
-    
-    
 }

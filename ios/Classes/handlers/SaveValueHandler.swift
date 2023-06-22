@@ -20,32 +20,46 @@ class SaveValueHandler: CommandHandler {
             return
         }
         
-        if let key = arguments["key"] as? String, let value = arguments["value"] as? String, let containerId = arguments["containerId"] as? String {
-            let database = CKContainer(identifier: containerId).privateCloudDatabase
-            let query = CKQuery(recordType: "StorageItem", predicate: NSPredicate(value: true))
+        guard let containerId = arguments["containerId"] as? String, 
+            let recordType = arguments["recordType"] as? String,
+            let dataEntry = arguments["dataEntry"] as? [String: Any] else {
+            result(FlutterError.init(code: "Error", message: "Cannot pass required parameters", details: nil))
+            return
+        }
+        
+        let database = CKContainer(identifier: containerId).privateCloudDatabase
 
-            database.perform(query, inZoneWith: nil) { (records, error) in
-                let foundRecords = records?.compactMap({ $0.value(forKey: key) as? String })
-
-                if foundRecords?.count != 0 {
-                    result(FlutterError.init(code: "Error", message: "This key already exists in the database", details: nil))
-                }
+        let record = CKRecord(recordType: recordType)
+        for (key, value) in dataEntry {
+            switch value {
+            case is String:
+                record.setValue(value as? String, forKey: key)
+            case is Int:
+                record.setValue(value as? Int, forKey: key)
+            case is Double:
+                record.setValue(value as? Double, forKey: key)
+            case is Bool:
+                record.setValue(value as? Bool, forKey: key)
+            case is [String]: // Here's where we handle the array of strings
+                record.setValue(value as? [String], forKey: key)
+            case is [Int]: // Here's where we handle the array of Ints
+                record.setValue(value as? [Int], forKey: key)
+            case is [Double]: // Here's where we handle the array of Doubles
+                record.setValue(value as? [Double], forKey: key)
+            case is [Bool]: // Here's where we handle the array of Bools
+                record.setValue(value as? [Bool], forKey: key)
+            default:
+                result(FlutterError.init(code: "Error", message: "This data type is not supported", details: nil))
+                return
             }
+        }
 
-            let record = CKRecord(recordType: "StorageItem")
-            record.setValue(value, forKey: key)
-
-            database.save(record) { (record, error) in
-                if record != nil, error == nil {
-                    result(true)
-                } else {
-                    result(false)
-                }
+        database.save(record) { (record, error) in
+            if record != nil, error == nil {
+                result(true)
+            } else {
+                result(false)
             }
-         } else {
-            result(FlutterError.init(code: "Error", message: "Cannot pass key and value parameter", details: nil))
-         }
+        }
     }
-    
-    
 }
